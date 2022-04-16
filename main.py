@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect
+from flask import Flask, render_template, redirect, request, abort
 from data import db_session
 from data.__all_models import Jobs, User
 import datetime
@@ -107,7 +107,42 @@ def add_job():
         db_sess.merge(current_user)
         db_sess.commit()
         return redirect('/')
-    return render_template('add_job.html', title='Adding a Job', form=form)
+    return render_template('jobs.html',
+                           title='Adding a Job', form=form)
+
+
+@app.route('/jobs/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_news(id):
+    form = AddJobForm()
+    if request.method == "GET":
+        db_sess = db_session.create_session()
+        jobs = db_sess.query(Jobs).filter(Jobs.id == id,
+                                          Jobs.user == current_user).first()
+        if jobs:
+            form.team_leader.data = jobs.team_leader
+            form.job_title.data = jobs.job
+            form.work_size.data = jobs.work_size
+            form.collaborators.data = jobs.collaborators
+            form.is_finished.data = jobs.is_finished
+        else:
+            abort(404)
+    if form.validate_on_submit():
+        db_sess = db_session.create_session()
+        jobs = db_sess.query(Jobs).filter(Jobs.id == id,
+                                          Jobs.user == current_user).first()
+        if jobs:
+            form.team_leader.data = jobs.team_leader
+            form.job_title.data = jobs.job
+            form.work_size.data = jobs.work_size
+            form.collaborators.data = jobs.collaborators
+            form.is_finished.data = jobs.is_finished
+            db_sess.commit()
+            return redirect('/')
+        else:
+            abort(404)
+    return render_template('jobs.html',
+                           title='Editing a job', form=form)
 
 
 if __name__ == '__main__':

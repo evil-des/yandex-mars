@@ -3,7 +3,8 @@ from data import db_session
 from data.__all_models import Jobs, User
 import datetime
 from forms.user import RegisterForm, LoginForm
-from flask_login import login_user, LoginManager
+from forms.jobs import AddJobForm
+from flask_login import login_user, LoginManager, login_required, logout_user, current_user
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
@@ -81,6 +82,32 @@ def login():
         form.password.errors.append("Password is not correct!")
         return render_template('login.html', form=form)
     return render_template('login.html', title='Authorization', form=form)
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect("/")
+
+
+@app.route('/addjob',  methods=['GET', 'POST'])
+@login_required
+def add_job():
+    form = AddJobForm()
+    if form.validate_on_submit():
+        db_sess = db_session.create_session()
+        jobs = Jobs()
+        jobs.team_leader = form.team_leader.data
+        jobs.job = form.job_title.data
+        jobs.work_size = form.work_size.data
+        jobs.collaborators = form.collaborators.data
+        jobs.is_finished = form.is_finished.data
+        current_user.jobs.append(jobs)
+        db_sess.merge(current_user)
+        db_sess.commit()
+        return redirect('/')
+    return render_template('add_job.html', title='Adding a Job', form=form)
 
 
 if __name__ == '__main__':
